@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Reports & Analytics - IMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --sidebar-bg: #0f172a; --sidebar-hover: #1e293b; --primary-color: #3b82f6; --bg-color: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b; }
+        body { background-color: var(--bg-color); font-family: 'Inter', sans-serif; color: var(--text-dark); }
+        .sidebar { background-color: var(--sidebar-bg); color: #fff; height: 100vh; width: 260px; position: fixed; padding-top: 20px; overflow-y: auto; }
+        .sidebar h4 { text-align: center; color: var(--primary-color); font-weight: 700; margin-bottom: 20px; }
+        .user-badge-box { background: rgba(255, 255, 255, 0.07); margin: 0 15px 25px 15px; padding: 12px; border-radius: 12px; text-align: center; }
+        .sidebar a { color: #94a3b8; text-decoration: none; padding: 11px 25px; display: flex; align-items: center; transition: 0.3s; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background-color: var(--sidebar-hover); color: #fff; border-left: 4px solid var(--primary-color); }
+        .sidebar i { margin-right: 15px; font-size: 1.2rem; }
+        .main-content { margin-left: 260px; padding: 40px; }
+        .card-custom { background: #fff; border-radius: 16px; border: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 25px; }
+        .report-nav-btn { border-radius: 10px; font-weight: 600; padding: 10px 18px; border: 1px solid #cbd5e1; background: #fff; color: #475569; }
+        .report-nav-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+        .table thead th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; padding: 14px; }
+        .table tbody td { padding: 14px; vertical-align: middle; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h4><i class="bi bi-shield-lock-fill text-danger me-1"></i> IMS Admin</h4>
+        
+        <div class="user-badge-box">
+            <div class="fw-bold text-white small" id="currentUserName">Admin</div>
+            <span class="badge bg-danger mt-1" id="currentUserRole">ADMIN</span>
+        </div>
+
+        <a href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/products"><i class="bi bi-box"></i> Products</a>
+        <a href="/orders"><i class="bi bi-cart-check"></i> Orders & Sales</a>
+        <a href="/purchases"><i class="bi bi-bag-plus"></i> Purchases</a>
+        <a href="/categories"><i class="bi bi-tags"></i> Categories</a>
+        <a href="/suppliers"><i class="bi bi-truck"></i> Suppliers</a>
+        <a href="/users"><i class="bi bi-people"></i> Users</a>
+        <a href="/reports" class="active"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+        <a href="/history"><i class="bi bi-clock-history"></i> History</a>
+        <hr style="border-color: #334155; margin: 20px;">
+        <a href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Reports & Business Intelligence</h2>
+                <p class="text-muted mb-0">Generate inventory valuations, sales summaries, purchase audits, and export to CSV</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" onclick="exportToCSV()">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+                </button>
+                <button class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Print Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Report Tabs -->
+        <div class="d-flex gap-2 mb-4">
+            <button class="report-nav-btn active" id="tabInventory" onclick="switchReport('INVENTORY')">
+                <i class="bi bi-boxes me-1"></i> Inventory Valuation
+            </button>
+            <button class="report-nav-btn" id="tabSales" onclick="switchReport('SALES')">
+                <i class="bi bi-cash-stack me-1"></i> Sales & Revenue
+            </button>
+            <button class="report-nav-btn" id="tabPurchases" onclick="switchReport('PURCHASES')">
+                <i class="bi bi-truck me-1"></i> Purchases & Cost
+            </button>
+            <button class="report-nav-btn" id="tabAlerts" onclick="switchReport('ALERTS')">
+                <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Stock Alerts
+            </button>
+        </div>
+
+        <div class="card-custom" id="reportCard">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold text-dark mb-0" id="reportHeaderTitle">Inventory Valuation Report</h4>
+                <div class="text-muted small" id="reportMetaInfo">Generated on: Today</div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover" id="reportTable">
+                    <thead id="reportTableHead"></thead>
+                    <tbody id="reportTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentReportType = 'INVENTORY';
+        let reportData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const stored = localStorage.getItem('currentUser');
+                if (stored) {
+                    const u = JSON.parse(stored);
+                    if (u.role !== 'ADMIN') {
+                        window.location.href = '/products';
+                        return;
+                    }
+                    document.getElementById('currentUserName').textContent = u.username;
+                } else { window.location.href = '/login'; return; }
+            } catch(e) { window.location.href = '/login'; return; }
+
+            switchReport('INVENTORY');
+        });
+
+        async function switchReport(type) {
+            currentReportType = type;
+            document.querySelectorAll('.report-nav-btn').forEach(b => b.classList.remove('active'));
+            if (type === 'INVENTORY') document.getElementById('tabInventory').classList.add('active');
+            if (type === 'SALES') document.getElementById('tabSales').classList.add('active');
+            if (type === 'PURCHASES') document.getElementById('tabPurchases').classList.add('active');
+            if (type === 'ALERTS') document.getElementById('tabAlerts').classList.add('active');
+
+            const thead = document.getElementById('reportTableHead');
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Loading report data...</td></tr>';
+
+            document.getElementById('reportMetaInfo').textContent = `Generated: ${new Date().toLocaleString()}`;
+
+            if (type === 'INVENTORY') {
+                document.getElementById('reportHeaderTitle').textContent = "Inventory Stock & Valuation Report";
+                thead.innerHTML = `
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Price</th>
+                        <th>In Stock</th>
+                        <th>Total Sold</th>
+                        <th>Reorder Level</th>
+                        <th>Total Asset Value</th>
+                    </tr>
+                `;
+                const res = await fetch('/api/products');
+                reportData = await res.json();
+                renderInventoryReport(reportData);
+            } else if (type === 'SALES') {
+                document.getElementById('reportHeaderTitle').textContent = "Sales & Customer Revenue Report";
+                thead.innerHTML = `
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Total Revenue</th>
+                        <th>Status</th>
+                    </tr>
+                `;
+                const res = await fetch('/api/orders');
+                reportData = await res.json();
+                renderSalesReport(reportData);
+            } else if (type === 'PURCHASES') {
+                document.getElementById('reportHeaderTitle').textContent = "Purchases & Supplier Cost Report";
+                thead.innerHTML = `
+                    <tr>
+                        <th>PO #</th>
+                        <th>Date</th>
+                        <th>Supplier</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Unit Cost</th>
+                        <th>Total Cost</th>
+                        <th>Status</th>
+                    </tr>
+                `;
+                const res = await fetch('/api/purchases');
+                reportData = await res.json();
+                renderPurchasesReport(reportData);
+            } else if (type === 'ALERTS') {
+                document.getElementById('reportHeaderTitle').textContent = "Low-Stock & Out-of-Stock Alert Report";
+                thead.innerHTML = `
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Available Quantity</th>
+                        <th>Reorder Level</th>
+                        <th>Stock Health</th>
+                        <th>Action Required</th>
+                    </tr>
+                `;
+                const res = await fetch('/api/products');
+                const products = await res.json();
+                reportData = products.filter(p => p.quantity <= (p.minStock || 5));
+                renderAlertsReport(reportData);
+            }
+        }
+
+        function renderInventoryReport(list) {
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            let totalVal = 0;
+
+            list.forEach(p => {
+                const val = (p.quantity || 0) * parseFloat(p.price || 0);
+                totalVal += val;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-primary">#${p.productId}</td>
+                    <td class="fw-semibold">${p.productName}</td>
+                    <td>$${parseFloat(p.price).toFixed(2)}</td>
+                    <td class="fw-bold">${p.quantity} units</td>
+                    <td class="text-muted">${p.soldQuantity} units</td>
+                    <td>${p.minStock || 5} units</td>
+                    <td class="fw-bold text-success">$${val.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Summary Row
+            const sumTr = document.createElement('tr');
+            sumTr.className = 'table-light fw-bold fs-6';
+            sumTr.innerHTML = `
+                <td colspan="6" class="text-end">Total Catalog Valuation:</td>
+                <td class="text-success fs-5">$${totalVal.toFixed(2)}</td>
+            `;
+            tbody.appendChild(sumTr);
+        }
+
+        function renderSalesReport(list) {
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            let totalRev = 0;
+
+            list.forEach(o => {
+                if (o.status !== 'CANCELLED') totalRev += parseFloat(o.totalAmount || 0);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-primary">${o.orderNumber}</td>
+                    <td class="text-muted small">${o.createdAt ? o.createdAt.substring(0, 10) : 'Today'}</td>
+                    <td class="fw-semibold">${o.customerUsername}</td>
+                    <td>${o.productName}</td>
+                    <td>${o.quantity}</td>
+                    <td>$${parseFloat(o.unitPrice).toFixed(2)}</td>
+                    <td class="fw-bold text-dark">$${parseFloat(o.totalAmount).toFixed(2)}</td>
+                    <td><span class="badge ${o.status === 'CANCELLED' ? 'bg-danger' : 'bg-success'}">${o.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const sumTr = document.createElement('tr');
+            sumTr.className = 'table-light fw-bold fs-6';
+            sumTr.innerHTML = `
+                <td colspan="6" class="text-end">Net Completed Sales:</td>
+                <td colspan="2" class="text-success fs-5">$${totalRev.toFixed(2)}</td>
+            `;
+            tbody.appendChild(sumTr);
+        }
+
+        function renderPurchasesReport(list) {
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            let totalCost = 0;
+
+            list.forEach(p => {
+                totalCost += parseFloat(p.totalCost || 0);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-primary">${p.poNumber}</td>
+                    <td class="text-muted small">${p.createdAt ? p.createdAt.substring(0, 10) : 'Recent'}</td>
+                    <td class="fw-semibold">${p.supplierName}</td>
+                    <td>${p.productName}</td>
+                    <td>${p.quantity}</td>
+                    <td>$${parseFloat(p.unitCost).toFixed(2)}</td>
+                    <td class="fw-bold text-danger">$${parseFloat(p.totalCost).toFixed(2)}</td>
+                    <td><span class="badge ${p.status === 'PENDING' ? 'bg-warning' : 'bg-success'}">${p.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const sumTr = document.createElement('tr');
+            sumTr.className = 'table-light fw-bold fs-6';
+            sumTr.innerHTML = `
+                <td colspan="6" class="text-end">Total Procurement Expenditure:</td>
+                <td colspan="2" class="text-danger fs-5">$${totalCost.toFixed(2)}</td>
+            `;
+            tbody.appendChild(sumTr);
+        }
+
+        function renderAlertsReport(list) {
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-success fw-bold">🎉 All items are healthy! No low stock warnings.</td></tr>`;
+                return;
+            }
+
+            list.forEach(p => {
+                const isOut = p.quantity <= 0;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-primary">#${p.productId}</td>
+                    <td class="fw-bold">${p.productName}</td>
+                    <td class="fw-bold ${isOut ? 'text-danger' : 'text-warning'}">${p.quantity} units</td>
+                    <td>${p.minStock || 5} units</td>
+                    <td><span class="badge ${isOut ? 'bg-danger' : 'bg-warning text-dark'}">${isOut ? 'OUT OF STOCK' : 'LOW STOCK'}</span></td>
+                    <td><span class="text-danger small fw-semibold">${isOut ? 'Urgent PO needed' : 'Reorder recommended'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportToCSV() {
+            if (!reportData || reportData.length === 0) return alert('No data to export');
+            let csv = '';
+            if (currentReportType === 'INVENTORY') {
+                csv = 'Product ID,Product Name,Price,Quantity,Sold,Reorder Level\n';
+                reportData.forEach(p => {
+                    csv += `"${p.productId}","${p.productName}","${p.price}","${p.quantity}","${p.soldQuantity}","${p.minStock || 5}"\n`;
+                });
+            } else if (currentReportType === 'SALES') {
+                csv = 'Order Number,Date,Customer,Product,Quantity,Unit Price,Total Amount,Status\n';
+                reportData.forEach(o => {
+                    csv += `"${o.orderNumber}","${o.createdAt}","${o.customerUsername}","${o.productName}","${o.quantity}","${o.unitPrice}","${o.totalAmount}","${o.status}"\n`;
+                });
+            } else if (currentReportType === 'PURCHASES') {
+                csv = 'PO Number,Date,Supplier,Product,Quantity,Unit Cost,Total Cost,Status\n';
+                reportData.forEach(p => {
+                    csv += `"${p.poNumber}","${p.createdAt}","${p.supplierName}","${p.productName}","${p.quantity}","${p.unitCost}","${p.totalCost}","${p.status}"\n`;
+                });
+            } else {
+                csv = 'Product ID,Product Name,Quantity,Min Stock,Status\n';
+                reportData.forEach(p => {
+                    csv += `"${p.productId}","${p.productName}","${p.quantity}","${p.minStock || 5}","${p.quantity <= 0 ? 'OUT_OF_STOCK' : 'LOW_STOCK'}"\n`;
+                });
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `${currentReportType.toLowerCase()}_report_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('currentUser');
+            window.location.href = '/login';
+        });
+    </script>
+</body>
+</html>

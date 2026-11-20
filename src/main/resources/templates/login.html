@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Authentication - IMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0;
+            padding: 20px;
+        }
+        .auth-card { 
+            background: rgba(255, 255, 255, 0.06); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            border-radius: 20px; 
+            padding: 35px 30px; 
+            width: 100%; 
+            max-width: 460px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6); 
+        }
+        .auth-card h2 { color: #fff; text-align: center; font-weight: 700; font-size: 1.7rem; }
+        .auth-card p.subtitle { color: #94a3b8; text-align: center; font-size: 0.9rem; margin-bottom: 25px; }
+        
+        .nav-pills { 
+            background: rgba(255, 255, 255, 0.08); 
+            border-radius: 12px; 
+            padding: 4px; 
+            margin-bottom: 25px; 
+        }
+        .nav-pills .nav-link { 
+            color: #94a3b8; 
+            border-radius: 10px; 
+            font-weight: 600; 
+            padding: 9px 0; 
+            transition: all 0.3s; 
+            text-align: center; 
+        }
+        .nav-pills .nav-link.active { 
+            background: #3b82f6; 
+            color: #fff; 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); 
+        }
+        
+        .form-label { color: #cbd5e1; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; }
+        .form-control, .form-select { 
+            background: rgba(255, 255, 255, 0.09); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            color: #fff; 
+            border-radius: 10px; 
+            padding: 11px 14px; 
+        }
+        .form-control:focus, .form-select:focus { 
+            background: rgba(255, 255, 255, 0.16); 
+            color: #fff; 
+            border-color: #3b82f6; 
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); 
+        }
+        .form-control::placeholder { color: #64748b; }
+        .form-select option { background: #1e293b; color: #fff; }
+        
+        .btn-submit { 
+            background: #3b82f6; 
+            border: none; 
+            border-radius: 10px; 
+            padding: 12px; 
+            font-weight: 600; 
+            width: 100%; 
+            color: #fff; 
+            transition: all 0.25s; 
+            margin-top: 10px; 
+        }
+        .btn-submit:hover { 
+            background: #2563eb; 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4); 
+        }
+        
+        .msg-alert { border-radius: 8px; padding: 10px 14px; font-size: 0.88rem; margin-top: 15px; display: none; text-align: center; }
+        .msg-error { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; }
+        .msg-success { background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h2><i class="bi bi-box-seam text-primary me-2"></i>IMS Portal</h2>
+        <p class="subtitle">Inventory & Store Management System</p>
+
+        <!-- Auth Tabs -->
+        <ul class="nav nav-pills nav-fill" id="authTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginPane" type="button" role="tab">Sign In</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerPane" type="button" role="tab">Create Account</button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- LOGIN FORM -->
+            <div class="tab-pane fade show active" id="loginPane" role="tabpanel">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="loginUsername" placeholder="Enter username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn btn-submit" id="loginBtn">Sign In</button>
+                    <div id="loginMsg" class="msg-alert msg-error"></div>
+                </form>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div class="tab-pane fade" id="registerPane" role="tabpanel">
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="regUsername" placeholder="Choose a username (min 3 chars)" required minlength="3">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password *</label>
+                        <!-- UPDATED PASSWORD INPUT WITH PATTERN -->
+                        <input type="password" class="form-control" id="regPassword" placeholder="Min 8 chars, 1 uppercase, 1 number" required 
+                               pattern="(?=.*[A-Z])(?=.*\d).{8,}" 
+                               title="Must contain at least one uppercase letter, one number, and be at least 8 characters long.">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password *</label>
+                        <!-- UPDATED CONFIRM PASSWORD INPUT WITH PATTERN -->
+                        <input type="password" class="form-control" id="regConfirmPassword" placeholder="Re-enter password" required 
+                               pattern="(?=.*[A-Z])(?=.*\d).{8,}" 
+                               title="Must contain at least one uppercase letter, one number, and be at least 8 characters long.">
+                    </div>
+                    <button type="submit" class="btn btn-submit" id="regBtn">Create Account</button>
+                    <div id="regMsg" class="msg-alert"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // LOGIN HANDLER
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const msgBox = document.getElementById('loginMsg');
+            msgBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+
+                    // Clear role separation:
+                    if (user.role === 'ADMIN') {
+                        window.location.href = '/dashboard';
+                    } else {
+                        // Regular user goes directly to customer store view!
+                        window.location.href = '/products';
+                    }
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    msgBox.className = 'msg-alert msg-error';
+                    msgBox.textContent = err.error || 'Invalid username or password';
+                    msgBox.style.display = 'block';
+                }
+            } catch (err) {
+                msgBox.className = 'msg-alert msg-error';
+                msgBox.textContent = 'Server connection failed. Ensure Spring Boot is running on port 8081.';
+                msgBox.style.display = 'block';
+            }
+        });
+
+        // REGISTER HANDLER (Customers / Users only)
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const msgBox = document.getElementById('regMsg');
+            msgBox.style.display = 'none';
+
+            if (username.length < 3) {
+                msgBox.className = 'msg-alert msg-error';
+                msgBox.textContent = 'Username must be at least 3 characters long.';
+                msgBox.style.display = 'block';
+                return;
+            }
+
+            // --- UPDATED JAVASCRIPT PASSWORD VALIDATION ---
+            const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+            if (!passwordPattern.test(password)) {
+                msgBox.className = 'msg-alert msg-error';
+                msgBox.textContent = 'Password must be at least 8 characters long, contain at least one uppercase letter, and at least one number.';
+                msgBox.style.display = 'block';
+                return;
+            }
+            // ----------------------------------------------
+
+            if (password !== confirmPassword) {
+                msgBox.className = 'msg-alert msg-error';
+                msgBox.textContent = 'Passwords do not match! Please check and re-enter.';
+                msgBox.style.display = 'block';
+                return;
+            }
+
+            const regBtn = document.getElementById('regBtn');
+            regBtn.disabled = true;
+            regBtn.textContent = 'Creating account...';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role: 'USER' })
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    msgBox.className = 'msg-alert msg-success';
+                    msgBox.textContent = `Customer account created successfully for '${user.username}'! Switching to Sign In...`;
+                    msgBox.style.display = 'block';
+                    document.getElementById('registerForm').reset();
+                    
+                    setTimeout(() => {
+                        const loginTab = new bootstrap.Tab(document.getElementById('login-tab'));
+                        loginTab.show();
+                        document.getElementById('loginUsername').value = username;
+                        document.getElementById('loginPassword').value = '';
+                        document.getElementById('loginPassword').focus();
+                    }, 1400);
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    msgBox.className = 'msg-alert msg-error';
+                    msgBox.textContent = err.error || 'Could not register user. Username may already be taken.';
+                    msgBox.style.display = 'block';
+                }
+            } catch (err) {
+                msgBox.className = 'msg-alert msg-error';
+                msgBox.textContent = 'Connection error. Ensure the server is running.';
+                msgBox.style.display = 'block';
+            } finally {
+                regBtn.disabled = false;
+                regBtn.textContent = 'Create Account';
+            }
+        });
+    </script>
+</body>
+</html>

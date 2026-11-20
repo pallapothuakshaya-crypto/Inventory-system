@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "ims-inventory-api-collection",
+    "name": "IMS Inventory Management System APIs",
+    "description": "Collection of all REST API endpoints for testing the Inventory & Store Management System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"role\": \"USER\"\n}"
+            },
+            "url": { "raw": "http://localhost:8081/api/auth/register", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"user\",\n  \"password\": \"user123\"\n}"
+            },
+            "url": { "raw": "http://localhost:8081/api/auth/login", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "http://localhost:8081/api/auth/logout", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products & Inventory",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "http://localhost:8081/api/products", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "products"] }
+          }
+        },
+        {
+          "name": "Add Product (with Quantity)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Mechanical Keyboard\",\n  \"description\": \"RGB Backlit Red Switches\",\n  \"price\": 89.99,\n  \"categoryId\": 1,\n  \"quantity\": 15,\n  \"soldQuantity\": 0\n}"
+            },
+            "url": { "raw": "http://localhost:8081/api/products", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "products"] }
+          }
+        },
+        {
+          "name": "Update Product (Stock & Sold Units)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Mechanical Keyboard (Updated)\",\n  \"description\": \"RGB Backlit Red Switches (Gen 2)\",\n  \"price\": 79.99,\n  \"categoryId\": 1,\n  \"quantity\": 20,\n  \"soldQuantity\": 5\n}"
+            },
+            "url": { "raw": "http://localhost:8081/api/products/1", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "products", "1"] }
+          }
+        },
+        {
+          "name": "Customer Select / Buy Product (Order)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "http://localhost:8081/api/products/1/select", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "products", "1", "select"] },
+            "description": "Places an order: decrements product stock by 1 and increments sold count by 1 in MySQL."
+          }
+        },
+        {
+          "name": "Customer Restock Notification (When Sold Out)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contact\": \"customer@example.com\"\n}"
+            },
+            "url": { "raw": "http://localhost:8081/api/products/2/notify", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "products", "2", "notify"] },
+            "description": "Registers customer contact for notification when a completed / sold-out product is back in stock."
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "http://localhost:8081/api/products/1", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "products", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "http://localhost:8081/api/categories", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "categories"] }
+          }
+        },
+        {
+          "name": "Add Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Gaming Accessories\",\n  \"description\": \"Keyboards, Mice, Headsets\"\n}"
+            },
+            "url": { "raw": "http://localhost:8081/api/categories", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "categories"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "History & Audit Logs",
+      "item": [
+        {
+          "name": "Get Activity Logs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "http://localhost:8081/api/history", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api", "history"] }
+          }
+        }
+      ]
+    }
+  ]
+}

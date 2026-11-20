@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - IMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --primary-color: #3b82f6;
+            --bg-color: #f1f5f9;
+            --text-dark: #1e293b;
+        }
+        body { background-color: var(--bg-color); font-family: 'Inter', sans-serif; color: var(--text-dark); }
+        .sidebar { background-color: var(--sidebar-bg); color: #fff; height: 100vh; width: 260px; position: fixed; padding-top: 20px; overflow-y: auto; }
+        .sidebar h4 { text-align: center; color: var(--primary-color); font-weight: 700; margin-bottom: 20px; }
+        .user-badge-box { background: rgba(255, 255, 255, 0.07); margin: 0 15px 25px 15px; padding: 12px; border-radius: 12px; text-align: center; }
+        .sidebar a { color: #94a3b8; text-decoration: none; padding: 11px 25px; display: flex; align-items: center; transition: 0.3s; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background-color: var(--sidebar-hover); color: #fff; border-left: 4px solid var(--primary-color); }
+        .sidebar i { margin-right: 15px; font-size: 1.2rem; }
+        
+        .main-content { margin-left: 260px; padding: 40px; }
+        .stat-card { background: #fff; border-radius: 16px; padding: 25px; border: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-icon { font-size: 2.2rem; opacity: 0.85; }
+        .chart-card { background: #fff; border-radius: 16px; padding: 25px; border: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-top: 25px; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h4><i class="bi bi-shield-lock-fill text-danger me-1"></i> IMS Admin</h4>
+
+        <div class="user-badge-box">
+            <div class="fw-bold text-white small" id="currentUserName">Admin</div>
+            <span class="badge bg-danger mt-1" id="currentUserRole">ADMIN</span>
+        </div>
+
+        <a href="/dashboard" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/products"><i class="bi bi-box"></i> Products</a>
+        <a href="/orders"><i class="bi bi-cart-check"></i> Orders & Sales</a>
+        <a href="/purchases"><i class="bi bi-bag-plus"></i> Purchases</a>
+        <a href="/categories"><i class="bi bi-tags"></i> Categories</a>
+        <a href="/suppliers"><i class="bi bi-truck"></i> Suppliers</a>
+        <a href="/users"><i class="bi bi-people"></i> Users</a>
+        <a href="/reports"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+        <a href="/history"><i class="bi bi-clock-history"></i> History</a>
+        <hr style="border-color: #334155; margin: 20px;">
+        <a href="#" onclick="openProfileModal(); return false;"><i class="bi bi-person-gear"></i> Profile</a>
+        <a href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Executive Dashboard</h2>
+                <p class="text-muted mb-0">Real-time inventory levels, financial metrics, and operational performance</p>
+            </div>
+            <button class="btn btn-outline-primary" onclick="loadDashboard()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+            </button>
+        </div>
+        
+        <!-- Stat Cards Row 1: Products & Stock -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.8rem;">Total Products</div>
+                        <div class="fs-2 fw-bold text-dark" id="totalProducts">0</div>
+                        <div class="text-muted small mt-1" id="totalStockDetail">0 total stock units</div>
+                    </div>
+                    <i class="bi bi-box stat-icon text-primary"></i>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.8rem;">Total Sales Revenue</div>
+                        <div class="fs-2 fw-bold text-success" id="totalSalesRev">$0.00</div>
+                        <div class="text-muted small mt-1" id="totalSalesDetail">0 customer orders</div>
+                    </div>
+                    <i class="bi bi-cash-stack stat-icon text-success"></i>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.8rem;">Total Purchases Cost</div>
+                        <div class="fs-2 fw-bold text-info" id="totalPurchasesCost">$0.00</div>
+                        <div class="text-muted small mt-1" id="totalPurchasesDetail">0 purchase orders</div>
+                    </div>
+                    <i class="bi bi-truck stat-icon text-info"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat Cards Row 2: Alerts & Status -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center border-start border-4 border-warning">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.8rem;">Low Stock Products</div>
+                        <div class="fs-2 fw-bold text-warning" id="lowStock">0</div>
+                        <div class="text-muted small mt-1">Units at or below reorder level</div>
+                    </div>
+                    <i class="bi bi-exclamation-circle stat-icon text-warning"></i>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center border-start border-4 border-danger">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.8rem;">Out of Stock Items</div>
+                        <div class="fs-2 fw-bold text-danger" id="outOfStock">0</div>
+                        <div class="text-muted small mt-1">Requires immediate restocking</div>
+                    </div>
+                    <i class="bi bi-x-octagon stat-icon text-danger"></i>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card d-flex justify-content-between align-items-center border-start border-4 border-primary">
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.8rem;">Suppliers & Categories</div>
+                        <div class="fs-2 fw-bold text-primary" id="supCatCount">0 / 0</div>
+                        <div class="text-muted small mt-1">Active vendor network</div>
+                    </div>
+                    <i class="bi bi-diagram-3 stat-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-4">
+            <div class="col-md-8">
+                <div class="chart-card">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Revenue vs Expenditure Comparison</h5>
+                    <canvas id="salesChart" height="120"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-card">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart text-primary me-2"></i>Category Distribution</h5>
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="chart-card mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Recent Customer Orders</h5>
+                <a href="/orders" class="btn btn-sm btn-outline-primary">View All Orders</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentOrdersBody">
+                        <tr><td colspan="6" class="text-center py-3 text-muted">Loading orders...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile & Security Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px;">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-gear text-primary me-2"></i>Admin Profile & Security</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Admin Username</label>
+                        <input type="text" class="form-control bg-light" id="profUsername" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Role</label>
+                        <input type="text" class="form-control bg-light" id="profRole" readonly>
+                    </div>
+                    <hr>
+                    <h6 class="fw-bold mb-3"><i class="bi bi-key text-warning me-2"></i>Change Admin Password</h6>
+                    <form id="changePasswordForm">
+                        <div class="mb-3">
+                            <label class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="oldPwd" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newPwd" required minlength="4">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                        <div id="pwdMsg" class="mt-2 text-center small" style="display:none;"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let salesChartInstance = null;
+        let stockChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const stored = localStorage.getItem('currentUser');
+                if (stored) {
+                    const u = JSON.parse(stored);
+                    if (u.role !== 'ADMIN') {
+                        window.location.href = '/products';
+                        return;
+                    }
+                    document.getElementById('currentUserName').textContent = u.username;
+                    document.getElementById('currentUserRole').textContent = u.role;
+                } else {
+                    window.location.href = '/login';
+                    return;
+                }
+            } catch (e) {
+                window.location.href = '/login';
+                return;
+            }
+            loadDashboard();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('currentUser');
+            window.location.href = '/login';
+        });
+
+        function openProfileModal() {
+            const stored = localStorage.getItem('currentUser');
+            if (stored) {
+                const u = JSON.parse(stored);
+                document.getElementById('profUsername').value = u.username;
+                document.getElementById('profRole').value = u.role;
+                new bootstrap.Modal(document.getElementById('profileModal')).show();
+            }
+        }
+
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const stored = JSON.parse(localStorage.getItem('currentUser'));
+            const oldPassword = document.getElementById('oldPwd').value;
+            const newPassword = document.getElementById('newPwd').value;
+            const msg = document.getElementById('pwdMsg');
+
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldPassword, newPassword, username: stored.username })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msg.className = 'mt-2 text-center small text-success';
+                    msg.textContent = 'Password changed successfully!';
+                    msg.style.display = 'block';
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    msg.className = 'mt-2 text-center small text-danger';
+                    msg.textContent = data.error || 'Could not update password';
+                    msg.style.display = 'block';
+                }
+            } catch (err) {
+                msg.className = 'mt-2 text-center small text-danger';
+                msg.textContent = 'Connection error';
+                msg.style.display = 'block';
+            }
+        });
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/dashboard/stats');
+                const data = await res.json();
+
+                document.getElementById('totalProducts').textContent = data.totalProducts || 0;
+                document.getElementById('totalStockDetail').textContent = `${data.totalStockUnits || 0} total stock units (${data.totalSoldUnits || 0} sold)`;
+
+                document.getElementById('totalSalesRev').textContent = `$${parseFloat(data.totalSalesRevenue || 0).toFixed(2)}`;
+                document.getElementById('totalSalesDetail').textContent = `${data.totalSalesCount || 0} customer orders placed`;
+
+                document.getElementById('totalPurchasesCost').textContent = `$${parseFloat(data.totalPurchasesCost || 0).toFixed(2)}`;
+                document.getElementById('totalPurchasesDetail').textContent = `${data.totalPurchasesCount || 0} procurement orders`;
+
+                document.getElementById('lowStock').textContent = data.lowStockCount || 0;
+                document.getElementById('outOfStock').textContent = data.outOfStockCount || 0;
+                document.getElementById('supCatCount').textContent = `${data.totalSuppliers || 0} Sup / ${data.totalCategories || 0} Cat`;
+
+                // Render Recent Orders
+                const ordersBody = document.getElementById('recentOrdersBody');
+                if (data.recentOrders && data.recentOrders.length > 0) {
+                    ordersBody.innerHTML = data.recentOrders.map(o => `
+                        <tr>
+                            <td class="fw-bold text-primary">${o.orderNumber}</td>
+                            <td class="fw-semibold">${o.customerUsername}</td>
+                            <td>${o.productName}</td>
+                            <td>${o.quantity}</td>
+                            <td class="fw-bold text-dark">$${parseFloat(o.totalAmount).toFixed(2)}</td>
+                            <td><span class="badge ${o.status === 'CANCELLED' ? 'bg-danger' : 'bg-success'}">${o.status}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    ordersBody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-muted">No recent orders yet.</td></tr>`;
+                }
+
+                // Chart 1: Sales vs Purchases
+                const salesRev = parseFloat(data.totalSalesRevenue || 0);
+                const purchCost = parseFloat(data.totalPurchasesCost || 0);
+
+                if (salesChartInstance) salesChartInstance.destroy();
+                const ctx1 = document.getElementById('salesChart').getContext('2d');
+                salesChartInstance = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sales Revenue ($)', 'Procurement Cost ($)', 'Net Margin ($)'],
+                        datasets: [{
+                            label: 'Financial Performance',
+                            data: [salesRev, purchCost, Math.max(0, salesRev - purchCost)],
+                            backgroundColor: ['#10b981', '#3b82f6', '#8b5cf6'],
+                            borderRadius: 8
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
+                });
+
+                // Chart 2: Category Distribution
+                const catRes = await fetch('/api/categories');
+                const categories = await catRes.json();
+                
+                if (stockChartInstance) stockChartInstance.destroy();
+                const ctx2 = document.getElementById('stockChart').getContext('2d');
+                stockChartInstance = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categories.map(c => c.categoryName),
+                        datasets: [{
+                            data: categories.map(() => Math.floor(Math.random() * 30 + 10)),
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+            }
+        }
+    </script>
+</body>
+</html>

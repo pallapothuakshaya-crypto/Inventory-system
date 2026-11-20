@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sales & Orders - IMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --sidebar-bg: #0f172a; --sidebar-hover: #1e293b; --primary-color: #3b82f6; --bg-color: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b; }
+        body { background-color: var(--bg-color); font-family: 'Inter', sans-serif; color: var(--text-dark); }
+        .sidebar { background-color: var(--sidebar-bg); color: #fff; height: 100vh; width: 260px; position: fixed; padding-top: 20px; overflow-y: auto; }
+        .sidebar h4 { text-align: center; color: var(--primary-color); font-weight: 700; margin-bottom: 20px; }
+        .user-badge-box { background: rgba(255, 255, 255, 0.07); margin: 0 15px 25px 15px; padding: 12px; border-radius: 12px; text-align: center; }
+        .sidebar a { color: #94a3b8; text-decoration: none; padding: 11px 25px; display: flex; align-items: center; transition: 0.3s; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background-color: var(--sidebar-hover); color: #fff; border-left: 4px solid var(--primary-color); }
+        .sidebar i { margin-right: 15px; font-size: 1.2rem; }
+        .main-content { margin-left: 260px; padding: 40px; }
+        .card-custom { background: #fff; border-radius: 16px; border: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 25px; }
+        .table thead th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; padding: 14px; }
+        .table tbody td { padding: 14px; vertical-align: middle; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; }
+        .search-box { border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 15px; width: 320px; }
+        .invoice-card { background: #fff; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 30px; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h4 id="sidebarBrand"><i class="bi bi-box-seam"></i> IMS</h4>
+        
+        <div class="user-badge-box">
+            <div class="fw-bold text-white small" id="currentUserName">User</div>
+            <span class="badge bg-primary mt-1" id="currentUserRole">USER</span>
+        </div>
+
+        <a href="/dashboard" id="navDashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/products" id="navProducts"><i class="bi bi-box"></i> Products</a>
+        <a href="/orders" class="active" id="navOrders"><i class="bi bi-cart-check"></i> Orders & Sales</a>
+        <a href="/purchases" id="navPurchases"><i class="bi bi-bag-plus"></i> Purchases</a>
+        <a href="/categories" id="navCategories"><i class="bi bi-tags"></i> Categories</a>
+        <a href="/suppliers" id="navSuppliers"><i class="bi bi-truck"></i> Suppliers</a>
+        <a href="/users" id="navUsers"><i class="bi bi-people"></i> Users</a>
+        <a href="/reports" id="navReports"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+        <a href="/history" id="navHistory"><i class="bi bi-clock-history"></i> History</a>
+        <hr style="border-color: #334155; margin: 20px;">
+        <a href="#" onclick="openProfileModal(); return false;"><i class="bi bi-person-gear"></i> Profile</a>
+        <a href="#" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1" id="pageTitle">Orders & Sales Management</h2>
+                <p class="text-muted mb-0" id="pageSubtext">Track sales transactions, order statuses, and generate customer invoices</p>
+            </div>
+            <button class="btn btn-outline-primary" onclick="loadOrders()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+
+        <div class="card-custom">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search orders by order #, product, customer...">
+                <div class="d-flex gap-2">
+                    <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold" id="orderCount">0 orders</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th id="colCustomer">Customer</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <tr><td colspan="9" class="text-center py-4 text-muted">Loading orders...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 20px; border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-receipt text-primary me-2"></i>Sales Invoice / Receipt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="invoice-card" id="invoicePrintArea">
+                        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                            <div>
+                                <h3 class="fw-bold text-primary mb-0"><i class="bi bi-box-seam me-2"></i>IMS Portal</h3>
+                                <p class="text-muted small mb-0">Inventory & Store Management System</p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success fs-6 px-3 py-1 mb-1" id="invPaymentStatus">PAID</span>
+                                <div class="fw-bold fs-5 text-dark" id="invOrderNum">ORD-0000</div>
+                                <div class="text-muted small" id="invDate">Date</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <div class="text-muted small text-uppercase fw-semibold">Billed To:</div>
+                                <div class="fw-bold text-dark fs-5" id="invCustomer">Customer</div>
+                                <div class="text-muted small">Registered Store Customer</div>
+                            </div>
+                            <div class="col-6 text-end">
+                                <div class="text-muted small text-uppercase fw-semibold">Payment Method:</div>
+                                <div class="fw-semibold text-dark">Direct Store Checkout</div>
+                                <div class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>Verified & Cleared</div>
+                            </div>
+                        </div>
+
+                        <table class="table mb-4">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item Description</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="fw-semibold" id="invProductName">Product Name</td>
+                                    <td class="text-center" id="invQty">1</td>
+                                    <td class="text-end" id="invUnitPrice">$0.00</td>
+                                    <td class="text-end fw-bold" id="invTotalAmount">$0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="d-flex justify-content-end">
+                            <div style="width: 250px;">
+                                <div class="d-flex justify-content-between mb-1 text-muted">
+                                    <span>Subtotal:</span>
+                                    <span id="invSubtotal">$0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2 text-muted">
+                                    <span>Tax (0%):</span>
+                                    <span>$0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between border-top pt-2 fs-5 fw-bold text-primary">
+                                    <span>Total:</span>
+                                    <span id="invGrandTotal">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="printInvoice()"><i class="bi bi-printer me-1"></i> Print Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile & Password Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px;">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-gear text-primary me-2"></i>My Profile & Security</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Username</label>
+                        <input type="text" class="form-control bg-light" id="profUsername" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Role</label>
+                        <input type="text" class="form-control bg-light" id="profRole" readonly>
+                    </div>
+                    <hr>
+                    <h6 class="fw-bold mb-3"><i class="bi bi-key text-warning me-2"></i>Change Password</h6>
+                    <form id="changePasswordForm">
+                        <div class="mb-3">
+                            <label class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="oldPwd" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newPwd" required minlength="4">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                        <div id="pwdMsg" class="mt-2 text-center small" style="display:none;"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let allOrders = [];
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupUserSession();
+            loadOrders();
+        });
+
+        function setupUserSession() {
+            try {
+                const stored = localStorage.getItem('currentUser');
+                if (stored) {
+                    currentUser = JSON.parse(stored);
+                } else {
+                    window.location.href = '/login';
+                    return;
+                }
+            } catch (e) { window.location.href = '/login'; return; }
+
+            const isAdmin = (currentUser && currentUser.role === 'ADMIN');
+            document.getElementById('currentUserName').textContent = currentUser.username;
+            document.getElementById('currentUserRole').textContent = currentUser.role;
+            document.getElementById('currentUserRole').className = isAdmin ? 'badge bg-danger mt-1' : 'badge bg-primary mt-1';
+
+            if (isAdmin) {
+                document.getElementById('sidebarBrand').innerHTML = `<i class="bi bi-shield-lock-fill text-danger me-1"></i> IMS Admin`;
+                document.getElementById('pageTitle').textContent = "Sales & Orders Management";
+                document.getElementById('pageSubtext').textContent = "Admin Portal: View all customer orders, track sales revenue, issue refunds/cancellations";
+            } else {
+                document.getElementById('sidebarBrand').innerHTML = `<i class="bi bi-shop text-primary me-1"></i> IMS Store`;
+                document.getElementById('pageTitle').textContent = "My Orders & Receipts";
+                document.getElementById('pageSubtext').textContent = "Customer Portal: View your past purchases, verify delivery status, and print receipts";
+                document.getElementById('navDashboard').classList.add('d-none');
+                document.getElementById('navPurchases').classList.add('d-none');
+                document.getElementById('navCategories').classList.add('d-none');
+                document.getElementById('navSuppliers').classList.add('d-none');
+                document.getElementById('navUsers').classList.add('d-none');
+                document.getElementById('navReports').classList.add('d-none');
+                document.getElementById('navHistory').classList.add('d-none');
+                document.getElementById('colCustomer').classList.add('d-none');
+            }
+        }
+
+        async function loadOrders() {
+            const tbody = document.getElementById('ordersTableBody');
+            try {
+                const res = await fetch('/api/orders');
+                if (!res.ok) throw new Error('Could not fetch');
+                allOrders = await res.json();
+                renderOrders(allOrders);
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">Failed to load orders.</td></tr>`;
+            }
+        }
+
+        function renderOrders(orders) {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '';
+            document.getElementById('orderCount').textContent = `${orders.length} orders`;
+
+            if (orders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No orders found.</td></tr>`;
+                return;
+            }
+
+            const isAdmin = (currentUser && currentUser.role === 'ADMIN');
+
+            orders.forEach(o => {
+                const isCancelled = o.status === 'CANCELLED';
+                const statusBadge = isCancelled 
+                    ? `<span class="badge bg-danger-subtle text-danger border border-danger">CANCELLED</span>`
+                    : `<span class="badge bg-success-subtle text-success border border-success">COMPLETED</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-primary">${o.orderNumber || ('#' + o.orderId)}</td>
+                    <td class="text-muted small">${o.createdAt ? o.createdAt.replace('T', ' ').substring(0, 16) : 'Just now'}</td>
+                    ${isAdmin ? `<td class="fw-semibold">${o.customerUsername}</td>` : ''}
+                    <td class="fw-semibold text-dark">${o.productName}</td>
+                    <td class="text-center">${o.quantity}</td>
+                    <td>$${parseFloat(o.unitPrice).toFixed(2)}</td>
+                    <td class="fw-bold text-dark">$${parseFloat(o.totalAmount).toFixed(2)}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewInvoice(${o.orderId})">
+                            <i class="bi bi-receipt"></i> Invoice
+                        </button>
+                        ${(isAdmin && !isCancelled) ? `
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelOrder(${o.orderId})">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function viewInvoice(id) {
+            const o = allOrders.find(item => item.orderId === id);
+            if (!o) return;
+
+            document.getElementById('invOrderNum').textContent = o.orderNumber;
+            document.getElementById('invDate').textContent = o.createdAt ? o.createdAt.replace('T', ' ').substring(0, 16) : 'Today';
+            document.getElementById('invCustomer').textContent = o.customerUsername;
+            document.getElementById('invPaymentStatus').textContent = o.paymentStatus || 'PAID';
+            document.getElementById('invPaymentStatus').className = (o.status === 'CANCELLED') ? 'badge bg-danger fs-6 px-3 py-1 mb-1' : 'badge bg-success fs-6 px-3 py-1 mb-1';
+            
+            document.getElementById('invProductName').textContent = o.productName;
+            document.getElementById('invQty').textContent = o.quantity;
+            document.getElementById('invUnitPrice').textContent = `$${parseFloat(o.unitPrice).toFixed(2)}`;
+            document.getElementById('invTotalAmount').textContent = `$${parseFloat(o.totalAmount).toFixed(2)}`;
+            document.getElementById('invSubtotal').textContent = `$${parseFloat(o.totalAmount).toFixed(2)}`;
+            document.getElementById('invGrandTotal').textContent = `$${parseFloat(o.totalAmount).toFixed(2)}`;
+
+            new bootstrap.Modal(document.getElementById('invoiceModal')).show();
+        }
+
+        function printInvoice() {
+            window.print();
+        }
+
+        async function cancelOrder(id) {
+            if (!confirm(`Are you sure you want to cancel Order #${id}? The stock will be automatically restored.`)) return;
+            try {
+                const res = await fetch(`/api/orders/${id}/cancel`, { method: 'POST' });
+                if (res.ok) {
+                    alert('Order cancelled successfully! Restocked units in MySQL.');
+                    loadOrders();
+                } else {
+                    const data = await res.json();
+                    alert('Error: ' + (data.error || 'Could not cancel order'));
+                }
+            } catch (e) { alert('Connection error'); }
+        }
+
+        // Search Filter
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const kw = this.value.toLowerCase().trim();
+            if (!kw) return renderOrders(allOrders);
+            const filtered = allOrders.filter(o => 
+                (o.orderNumber && o.orderNumber.toLowerCase().includes(kw)) ||
+                (o.productName && o.productName.toLowerCase().includes(kw)) ||
+                (o.customerUsername && o.customerUsername.toLowerCase().includes(kw))
+            );
+            renderOrders(filtered);
+        });
+
+        // Profile Modal
+        function openProfileModal() {
+            if (!currentUser) return;
+            document.getElementById('profUsername').value = currentUser.username;
+            document.getElementById('profRole').value = currentUser.role;
+            new bootstrap.Modal(document.getElementById('profileModal')).show();
+        }
+
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldPassword = document.getElementById('oldPwd').value;
+            const newPassword = document.getElementById('newPwd').value;
+            const msg = document.getElementById('pwdMsg');
+            msg.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldPassword, newPassword, username: currentUser.username })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msg.className = 'mt-2 text-center small text-success';
+                    msg.textContent = 'Password changed successfully!';
+                    msg.style.display = 'block';
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    msg.className = 'mt-2 text-center small text-danger';
+                    msg.textContent = data.error || 'Could not update password';
+                    msg.style.display = 'block';
+                }
+            } catch (err) {
+                msg.className = 'mt-2 text-center small text-danger';
+                msg.textContent = 'Connection error';
+                msg.style.display = 'block';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('currentUser');
+            window.location.href = '/login';
+        });
+    </script>
+</body>
+</html>
